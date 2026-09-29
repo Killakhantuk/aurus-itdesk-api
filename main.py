@@ -18,6 +18,11 @@ def list_tickets(status: Optional[str] = None):
     return store.list(status_filter=status)
 
 
+@app.post("/tickets/escalate", response_model=list[Ticket])
+def escalate_tickets():
+    return store.escalate_overdue()
+
+
 @app.get("/tickets/{ticket_id}", response_model=Ticket)
 def get_ticket(ticket_id: str):
     ticket = store.get(ticket_id)

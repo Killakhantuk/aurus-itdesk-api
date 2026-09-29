@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 
 from models import Ticket, CreateTicketRequest, UpdateTicketRequest
@@ -66,6 +66,34 @@ class TicketStore:
         if status_filter:
             tickets = [t for t in tickets if t.status == status_filter]
         return sorted(tickets, key=lambda t: t.created_at, reverse=True)
+
+    def escalate_overdue(self) -> list[Ticket]:
+        now = datetime.now(timezone.utc)
+        escalated = []
+
+        for ticket in self.list():
+            if (
+                ticket.priority != "critical"
+                or ticket.status != "open"
+                or (ticket.assignee is not None and ticket.assignee.strip())
+                or ticket.sla_deadline is None
+            ):
+                continue
+
+            deadline = ticket.sla_deadline
+            if deadline.tzinfo is None:
+                deadline = deadline.replace(tzinfo=timezone.utc)
+            if deadline > now:
+                continue
+
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[ticket.id] = updated
+            escalated.append(updated)
+
+        return escalated
 
     def update(self, ticket_id: str, req: UpdateTicketRequest) -> Optional[Ticket]:
         ticket = self._tickets.get(ticket_id)
