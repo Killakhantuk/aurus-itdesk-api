@@ -6,6 +6,13 @@ from models import Ticket, CreateTicketRequest, UpdateTicketRequest
 
 _SLA_HOURS = {"low": 72, "medium": 24, "high": 8, "critical": 4}
 
+
+def _as_aware_utc(dt: datetime) -> datetime:
+    """Interpret naive datetimes as UTC so mixed stored values compare safely."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
 _INITIAL_TICKETS = [
     (
         "VPN access not working for new hire",
@@ -89,6 +96,33 @@ class TicketStore:
         })
         self._tickets[ticket_id] = updated
         return updated
+
+    def escalate_overdue_critical(self) -> list[Ticket]:
+        """Escalate critical tickets that breached SLA with no one assigned.
+
+        A ticket is escalated when it has critical priority, is still open,
+        has no assignee, and its SLA deadline is in the past. Critical
+        tickets carry a 4-hour SLA, so meeting this rule means the ticket
+        has gone unowned for 4+ hours. Returns the tickets that were
+        escalated, newest first.
+        """
+        now = datetime.now(timezone.utc)
+        escalated: list[Ticket] = []
+        for ticket in list(self._tickets.values()):
+            if (
+                ticket.priority == "critical"
+                and ticket.status == "open"
+                and not (ticket.assignee and ticket.assignee.strip())
+                and ticket.sla_deadline is not None
+                and _as_aware_utc(ticket.sla_deadline) < now
+            ):
+                updated = ticket.model_copy(update={
+                    "status": "escalated",
+                    "updated_at": now,
+                })
+                self._tickets[updated.id] = updated
+                escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
 
     def delete(self, ticket_id: str) -> bool:
         if ticket_id not in self._tickets:
