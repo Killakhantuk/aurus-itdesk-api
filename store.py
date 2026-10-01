@@ -34,6 +34,13 @@ _INITIAL_TICKETS = [
 ]
 
 
+def _as_aware(dt: datetime) -> datetime:
+    """Treat a naive deadline as UTC so it can be compared with an aware now."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class TicketStore:
     def __init__(self):
         self._tickets: dict[str, Ticket] = {}
@@ -76,6 +83,25 @@ class TicketStore:
         if status_filter:
             tickets = [t for t in tickets if t.status == status_filter]
         return sorted(tickets, key=lambda t: t.created_at, reverse=True)
+
+    def escalate_overdue(self) -> list[Ticket]:
+        now = datetime.now(timezone.utc)
+        escalated: list[Ticket] = []
+        for ticket in self._tickets.values():
+            if (
+                ticket.priority == "critical"
+                and ticket.status == "open"
+                and not (ticket.assignee or "").strip()
+                and ticket.sla_deadline is not None
+                and _as_aware(ticket.sla_deadline) < now
+            ):
+                updated = ticket.model_copy(update={
+                    "status": "escalated",
+                    "updated_at": now,
+                })
+                self._tickets[ticket.id] = updated
+                escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
 
     def update(self, ticket_id: str, req: UpdateTicketRequest) -> Optional[Ticket]:
         ticket = self._tickets.get(ticket_id)
