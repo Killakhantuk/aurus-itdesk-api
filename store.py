@@ -77,6 +77,35 @@ class TicketStore:
             tickets = [t for t in tickets if t.status == status_filter]
         return sorted(tickets, key=lambda t: t.created_at, reverse=True)
 
+    def _is_eligible_for_escalation(self, ticket: Ticket, now: datetime) -> bool:
+        deadline = ticket.sla_deadline
+        if deadline is None:
+            return False
+        if deadline.tzinfo is None:
+            # create() stores naive UTC deadlines; normalize before comparing.
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        has_owner = ticket.assignee is not None and ticket.assignee.strip() != ""
+        return (
+            ticket.priority == "critical"
+            and ticket.status == "open"
+            and not has_owner
+            and deadline < now
+        )
+
+    def escalate(self) -> list[Ticket]:
+        now = datetime.now(timezone.utc)
+        escalated: list[Ticket] = []
+        for ticket in list(self._tickets.values()):
+            if not self._is_eligible_for_escalation(ticket, now):
+                continue
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[ticket.id] = updated
+            escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
+
     def update(self, ticket_id: str, req: UpdateTicketRequest) -> Optional[Ticket]:
         ticket = self._tickets.get(ticket_id)
         if not ticket:
