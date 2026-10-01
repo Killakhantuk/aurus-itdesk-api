@@ -26,6 +26,11 @@ def create_ticket(req: CreateTicketRequest):
     return store.create(req)
 
 
+@app.post("/tickets/escalate", response_model=list[Ticket])
+def escalate_tickets():
+    return store.escalate_overdue_critical()
+
+
 @app.get("/tickets", response_model=list[Ticket])
 def list_tickets(status: Optional[str] = None):
     return store.list(status_filter=status)

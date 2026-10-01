@@ -6,6 +6,14 @@ from models import Ticket, CreateTicketRequest, UpdateTicketRequest
 
 _SLA_HOURS = {"low": 72, "medium": 24, "high": 8, "critical": 4}
 
+
+def _utc(dt: datetime) -> datetime:
+    """Normalize a datetime to timezone-aware UTC; naive values are treated as UTC."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 _INITIAL_TICKETS = [
     (
         "VPN access not working for new hire",
@@ -89,6 +97,35 @@ class TicketStore:
         })
         self._tickets[ticket_id] = updated
         return updated
+
+    def escalate_overdue_critical(self) -> list[Ticket]:
+        """Escalate open, unassigned critical tickets past their SLA deadline.
+
+        Only status and updated_at change. Returns the tickets that were
+        escalated, newest first; already-escalated tickets are never re-escalated.
+        """
+        now = datetime.now(timezone.utc)
+        escalated = []
+        for ticket in list(self._tickets.values()):
+            if not self._is_escalation_eligible(ticket, now):
+                continue
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[updated.id] = updated
+            escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
+
+    @staticmethod
+    def _is_escalation_eligible(ticket: Ticket, now: datetime) -> bool:
+        return (
+            ticket.priority == "critical"
+            and ticket.status == "open"
+            and (ticket.assignee is None or ticket.assignee.strip() == "")
+            and ticket.sla_deadline is not None
+            and _utc(ticket.sla_deadline) < now
+        )
 
     def delete(self, ticket_id: str) -> bool:
         if ticket_id not in self._tickets:
