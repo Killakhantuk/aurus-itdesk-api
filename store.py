@@ -77,6 +77,33 @@ class TicketStore:
             tickets = [t for t in tickets if t.status == status_filter]
         return sorted(tickets, key=lambda t: t.created_at, reverse=True)
 
+    def escalate_overdue(self) -> list[Ticket]:
+        """Escalate critical, open, unassigned tickets whose SLA deadline has passed."""
+        now = datetime.now(timezone.utc)
+        escalated: list[Ticket] = []
+        for ticket_id, ticket in self._tickets.items():
+            if ticket.priority != "critical" or ticket.status != "open":
+                continue
+            if ticket.assignee and ticket.assignee.strip():
+                continue
+            if not self._is_past_deadline(ticket.sla_deadline, now):
+                continue
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[ticket_id] = updated
+            escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
+
+    @staticmethod
+    def _is_past_deadline(deadline: Optional[datetime], now: datetime) -> bool:
+        if deadline is None:
+            return False
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        return deadline < now
+
     def update(self, ticket_id: str, req: UpdateTicketRequest) -> Optional[Ticket]:
         ticket = self._tickets.get(ticket_id)
         if not ticket:
