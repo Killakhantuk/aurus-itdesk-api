@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aurus IT Helpdesk — Service Desk</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --border: #e4e8ef;
+    --border-strong: #d5dbe5;
+    --header: #0f1b2d;
+    --header-2: #16263c;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+
+    --p-critical-bg: #fee2e2; --p-critical-fg: #b91c1c; --p-critical-bd: #fecaca; --p-critical-bar: #dc2626;
+    --p-high-bg: #ffedd5;     --p-high-fg: #c2410c;     --p-high-bd: #fed7aa;     --p-high-bar: #ea580c;
+    --p-medium-bg: #fef6c7;   --p-medium-fg: #92670a;   --p-medium-bd: #f7e08a;   --p-medium-bar: #d9a406;
+    --p-low-bg: #f1f5f9;      --p-low-fg: #475569;      --p-low-bd: #e2e8f0;      --p-low-bar: #94a3b8;
+
+    --s-open-bg: #dbeafe;        --s-open-fg: #1d4ed8;        --s-open-bd: #bfdbfe;
+    --s-progress-bg: #ede9fe;    --s-progress-fg: #6d28d9;    --s-progress-bd: #ddd6fe;
+    --s-resolved-bg: #dcfce7;    --s-resolved-fg: #15803d;    --s-resolved-bd: #bbf7d0;
+    --s-closed-bg: #eef2f7;      --s-closed-fg: #475569;      --s-closed-bd: #e2e8f0;
+    --s-escalated-bg: #fee2e2;   --s-escalated-fg: #b91c1c;   --s-escalated-bd: #fca5a5;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    background: linear-gradient(180deg, var(--header-2) 0%, var(--header) 100%);
+    border-bottom: 1px solid #050c16;
+    color: #fff;
+  }
+  .app-header__inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 28px;
+    height: 66px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand__mark {
+    width: 34px; height: 34px; flex: none;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .brand__mark svg { width: 18px; height: 18px; display: block; }
+  .brand__text { min-width: 0; }
+  .brand__title {
+    font-size: 15px; font-weight: 650; letter-spacing: .01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .brand__sub { font-size: 11.5px; color: #93a7c4; letter-spacing: .04em; text-transform: uppercase; }
+  .app-header__right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .env-chip {
+    font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+    color: #b9c9e0; border: 1px solid rgba(255,255,255,.18);
+    padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.05);
+  }
+  .clock { font-size: 12px; color: #93a7c4; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Layout ---------- */
+  .page { max-width: 1320px; margin: 0 auto; padding: 24px 28px 64px; }
+
+  .page-head { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
+  .page-head h1 { font-size: 21px; font-weight: 650; margin: 0 0 2px; letter-spacing: -.01em; }
+  .page-head p { margin: 0; color: var(--muted); font-size: 13px; }
+  .page-head__actions { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 550;
+    border-radius: 8px; border: 1px solid transparent;
+    padding: 9px 15px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: background .13s ease, border-color .13s ease, box-shadow .13s ease, transform .06s ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+  .btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
+  .btn svg { width: 15px; height: 15px; flex: none; }
+
+  .btn--primary { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,.35); }
+  .btn--primary:hover:not([disabled]) { background: var(--accent-dark); }
+
+  .btn--dark { background: var(--header); color: #fff; box-shadow: 0 1px 2px rgba(15,27,45,.3); }
+  .btn--dark:hover:not([disabled]) { background: #060f1c; }
+
+  .btn--ghost { background: var(--surface); color: #334155; border-color: var(--border-strong); }
+  .btn--ghost:hover:not([disabled]) { background: #f8fafc; border-color: #c3ccd9; }
+
+  .btn--subtle { background: transparent; color: var(--muted); border-color: transparent; padding: 8px 10px; }
+  .btn--subtle:hover { background: #eef2f7; color: var(--ink); }
+
+  .spinner {
+    width: 13px; height: 13px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Metric tiles ---------- */
+  .tiles {
+    display: grid; gap: 14px; margin-bottom: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 15px 17px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .tile__label {
+    font-size: 11px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .tile__value {
+    font-size: 27px; font-weight: 650; letter-spacing: -.02em;
+    margin-top: 5px; font-variant-numeric: tabular-nums;
+  }
+  .tile__foot { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tile::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent;
+  }
+  .tile--critical::after { background: var(--p-critical-bar); }
+  .tile--warn::after { background: #d9a406; }
+  .tile--ok::after { background: #16a34a; }
+  .tile--info::after { background: var(--accent); }
+  .tile--critical .tile__value { color: #b91c1c; }
+  .tile--warn .tile__value { color: #92670a; }
+
+  /* ---------- Banner ---------- */
+  .banner {
+    display: flex; align-items: flex-start; gap: 12px;
+    border-radius: 10px; padding: 13px 15px; margin-bottom: 16px;
+    border: 1px solid; font-size: 13px;
+  }
+  .banner__icon { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+  .banner__body { flex: 1; min-width: 0; }
+  .banner__title { font-weight: 620; }
+  .banner__text { color: #475569; margin-top: 2px; }
+  .banner ul { margin: 6px 0 0; padding-left: 18px; color: #475569; }
+  .banner li { margin: 1px 0; }
+  .banner--success { background: #f0fdf4; border-color: #bbf7d0; }
+  .banner--success .banner__icon { color: #15803d; }
+  .banner--info { background: #eff6ff; border-color: #bfdbfe; }
+  .banner--info .banner__icon { color: #1d4ed8; }
+  .banner--error { background: #fef2f2; border-color: #fecaca; }
+  .banner--error .banner__icon { color: #b91c1c; }
+  .banner__close {
+    border: 0; background: transparent; cursor: pointer; color: var(--muted);
+    font-size: 18px; line-height: 1; padding: 0 2px; border-radius: 4px;
+  }
+  .banner__close:hover { color: var(--ink); }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font: inherit; font-size: 12.5px; font-weight: 550;
+    border: 1px solid var(--border-strong); background: var(--surface);
+    color: #475569; border-radius: 999px; padding: 6px 13px; cursor: pointer;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .chip:hover { background: #f8fafc; }
+  .chip[aria-pressed="true"] { background: var(--header); border-color: var(--header); color: #fff; }
+  .chip__count {
+    display: inline-block; margin-left: 6px; font-size: 11px;
+    opacity: .75; font-variant-numeric: tabular-nums;
+  }
+  .search {
+    margin-left: auto; position: relative; min-width: 230px;
+  }
+  .search input {
+    font: inherit; font-size: 13px; width: 100%;
+    padding: 8px 12px 8px 32px; border-radius: 8px;
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink);
+  }
+  .search input:focus { outline: 2px solid #bfdbfe; outline-offset: 0; border-color: var(--accent); }
+  .search svg {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 15px; height: 15px; color: #94a3b8; pointer-events: none;
+  }
+
+  /* ---------- Table card ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    box-shadow: 0 1px 3px rgba(16,24,40,.05);
+    overflow: hidden;
+  }
+  .card__head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px; border-bottom: 1px solid var(--border);
+    background: #fcfdfe;
+  }
+  .card__head h2 { font-size: 13px; font-weight: 640; margin: 0; letter-spacing: .01em; }
+  .card__head .muted { font-size: 12px; color: var(--muted); }
+  .card__head .right { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 940px; }
+  thead th {
+    text-align: left; font-size: 10.5px; font-weight: 650; letter-spacing: .08em;
+    text-transform: uppercase; color: #6b7c93; background: #f8fafc;
+    padding: 9px 16px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 13px 16px; border-bottom: 1px solid #eef1f6; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { position: relative; cursor: pointer; }
+  tbody tr:hover { background: #fafbfd; }
+  tbody tr.is-escalated-now { background: #fff5f5; }
+  tbody tr.is-escalated-now:hover { background: #ffecec; }
+  td.cell-priority, td.cell-id { border-left: 0; }
+  tr td:first-child { border-left: 3px solid transparent; }
+  tr[data-priority="critical"] td:first-child { border-left-color: var(--p-critical-bar); }
+  tr[data-priority="high"] td:first-child { border-left-color: var(--p-high-bar); }
+  tr[data-priority="medium"] td:first-child { border-left-color: var(--p-medium-bar); }
+  tr[data-priority="low"] td:first-child { border-left-color: var(--p-low-bar); }
+
+  .t-title { font-weight: 600; color: var(--ink); }
+  .t-desc {
+    color: var(--muted); font-size: 12.5px; margin-top: 3px;
+    max-width: 460px;
+  }
+  .t-id {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: #64748b;
+  }
+  .t-when { font-size: 12px; color: #475569; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .t-when small { display: block; color: #94a3b8; font-size: 11px; }
+  .unassigned { color: #94a3b8; font-style: italic; }
+  .assignee { font-size: 12.5px; color: #334155; word-break: break-word; }
+
+  /* ---------- Badges ---------- */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .badge--critical { background: var(--p-critical-bg); color: var(--p-critical-fg); border-color: var(--p-critical-bd); }
+  .badge--high     { background: var(--p-high-bg);     color: var(--p-high-fg);     border-color: var(--p-high-bd); }
+  .badge--medium   { background: var(--p-medium-bg);   color: var(--p-medium-fg);   border-color: var(--p-medium-bd); }
+  .badge--low      { background: var(--p-low-bg);      color: var(--p-low-fg);      border-color: var(--p-low-bd); }
+
+  .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; padding: 3px 10px;
+    border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .status__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+  .status--open      { background: var(--s-open-bg);      color: var(--s-open-fg);      border-color: var(--s-open-bd); }
+  .status--in_progress { background: var(--s-progress-bg); color: var(--s-progress-fg); border-color: var(--s-progress-bd); }
+  .status--resolved  { background: var(--s-resolved-bg);  color: var(--s-resolved-fg);  border-color: var(--s-resolved-bd); }
+  .status--closed    { background: var(--s-closed-bg);    color: var(--s-closed-fg);    border-color: var(--s-closed-bd); }
+  .status--escalated { background: var(--s-escalated-bg); color: var(--s-escalated-fg); border-color: var(--s-escalated-bd); }
+
+  .sla { font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sla--ok { color: #334155; }
+  .sla--overdue { color: #b91c1c; font-weight: 620; }
+  .sla--none { color: #94a3b8; }
+  .sla__meta { display: block; font-size: 11px; color: #94a3b8; font-weight: 400; margin-top: 2px; }
+
+  /* ---------- Row status control ---------- */
+  select.status-select {
+    font: inherit; font-size: 12.5px; padding: 6px 26px 6px 9px;
+    border-radius: 7px; border: 1px solid var(--border-strong);
+    background: var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'><path d='M5.5 7.5 10 12l4.5-4.5z'/></svg>") no-repeat right 5px center;
+    background-size: 16px; color: #334155; cursor: pointer; width: 100%; max-width: 165px;
+    appearance: none; -webkit-appearance: none;
+  }
+  select.status-select:focus { outline: 2px solid #bfdbfe; border-color: var(--accent); }
+  select.status-select[disabled] { opacity: .6; cursor: progress; }
+
+  select.assignee-select {
+    font: inherit; font-size: 12.5px; padding: 6px 24px 6px 9px;
+    border-radius: 7px; border: 1px solid var(--border-strong);
+    background: var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'><path d='M5.5 7.5 10 12l4.5-4.5z'/></svg>") no-repeat right 4px center;
+    background-size: 16px; color: #334155; cursor: pointer; width: 100%; max-width: 190px;
+    appearance: none; -webkit-appearance: none;
+  }
+  select.assignee-select:focus { outline: 2px solid #bfdbfe; border-color: var(--accent); }
+  select.assignee-select[disabled] { opacity: .6; cursor: progress; }
+
+  .actions-cell { display: flex; align-items: center; gap: 8px; }
+  .delete-btn {
+    flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; padding: 0;
+    border: 1px solid transparent; border-radius: 7px;
+    background: transparent; color: #94a3b8; cursor: pointer;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .delete-btn svg { width: 15px; height: 15px; display: block; }
+  .delete-btn:hover:not([disabled]) {
+    background: #f1f5f9; color: #475569; border-color: var(--border-strong);
+  }
+  .delete-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+  .delete-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- Ticket detail panel ---------- */
+  .detail-backdrop {
+    position: fixed; inset: 0; background: rgba(15,27,45,.42);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 55;
+  }
+  .detail-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+  .detail-panel {
+    position: fixed; top: 0; right: 0; height: 100vh; width: 480px; max-width: 100vw;
+    background: var(--surface); z-index: 60;
+    display: flex; flex-direction: column;
+    box-shadow: -12px 0 36px rgba(15,23,42,.22);
+    transform: translateX(102%);
+    visibility: hidden;
+    transition: transform .2s ease, visibility 0s linear .2s;
+  }
+  .detail-panel.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform .2s ease, visibility 0s;
+  }
+
+  .detail-panel__head {
+    flex: none;
+    background: linear-gradient(180deg, var(--header-2) 0%, var(--header) 100%);
+    border-bottom: 1px solid #050c16; color: #fff;
+    padding: 14px 18px; display: flex; align-items: center; gap: 12px;
+  }
+  .detail-panel__eyebrow {
+    font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: #93a7c4;
+  }
+  .detail-panel__id {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 15px; font-weight: 620; letter-spacing: .02em; margin-top: 1px;
+  }
+  .detail-close {
+    margin-left: auto; flex: none;
+    width: 30px; height: 30px; border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06);
+    color: #cbd5e1; font-size: 18px; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .12s ease, color .12s ease;
+  }
+  .detail-close:hover { background: rgba(255,255,255,.14); color: #fff; }
+  .detail-close:focus-visible { outline: 2px solid #60a5fa; outline-offset: 1px; }
+
+  .detail-panel__body { flex: 1; overflow-y: auto; padding: 18px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .detail-field--wide { grid-column: 1 / -1; }
+  .detail-label {
+    font-size: 10.5px; font-weight: 650; letter-spacing: .08em;
+    text-transform: uppercase; color: #6b7c93; margin-bottom: 5px;
+  }
+  .detail-value { font-size: 13.5px; color: var(--ink); overflow-wrap: anywhere; }
+  .detail-title { font-weight: 620; font-size: 15px; line-height: 1.35; }
+  .detail-desc { color: #475569; white-space: pre-wrap; }
+  .detail-overdue { margin-top: 3px; font-size: 12px; font-weight: 620; color: #b91c1c; }
+  .detail-sub { margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+  .detail-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .detail-section__title {
+    font-size: 11px; font-weight: 650; letter-spacing: .08em;
+    text-transform: uppercase; color: #6b7c93; margin-bottom: 9px;
+  }
+
+  select.detail-select {
+    font: inherit; font-size: 13.5px; width: 100%; padding: 9px 30px 9px 11px;
+    border-radius: 8px; border: 1px solid var(--border-strong);
+    background: var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'><path d='M5.5 7.5 10 12l4.5-4.5z'/></svg>") no-repeat right 9px center;
+    background-size: 16px; color: var(--ink); cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+  }
+  select.detail-select:focus { outline: 2px solid #bfdbfe; border-color: var(--accent); }
+  select.detail-select[disabled] { opacity: .6; cursor: progress; }
+
+  .activity-log { list-style: none; margin: 0; padding: 0; }
+  .activity-item { display: flex; gap: 10px; padding: 9px 0; }
+  .activity-item + .activity-item { border-top: 1px solid #eef1f6; }
+  .activity-dot {
+    flex: none; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); margin-top: 5px;
+  }
+  .activity-body { min-width: 0; }
+  .activity-text { font-size: 13px; color: var(--ink); }
+  .activity-meta {
+    font-size: 11.5px; color: #94a3b8; margin-top: 3px;
+    display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  }
+  .activity-sys {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #475569; background: #eef2f7; border: 1px solid #e2e8f0;
+    border-radius: 999px; padding: 1px 6px;
+  }
+
+  @media (max-width: 560px) {
+    .detail-panel { width: 100%; }
+  }
+
+  /* ---------- Escalation flash ---------- */
+  @keyframes escalate-pulse {
+    0%   { background: #ffd9d9; }
+    35%  { background: #ffe9e9; }
+    100% { background: #fff5f5; }
+  }
+  @keyframes escalate-ring {
+    0%   { box-shadow: inset 0 0 0 2px rgba(220,38,38,.55); }
+    100% { box-shadow: inset 0 0 0 2px rgba(220,38,38,0); }
+  }
+  tr.flash { animation: escalate-pulse 1.5s ease-out 2, escalate-ring 3s ease-out 1; }
+  .escalated-tag {
+    display: inline-flex; align-items: center; gap: 5px; margin-left: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #b91c1c; background: #fff0f0; border: 1px solid #fca5a5;
+    padding: 2px 7px; border-radius: 999px;
+  }
+
+  /* ---------- Empty / loading ---------- */
+  .empty { padding: 56px 24px; text-align: center; color: var(--muted); }
+  .empty svg { width: 34px; height: 34px; color: #cbd5e1; margin-bottom: 10px; }
+  .empty h3 { margin: 0 0 4px; font-size: 15px; color: var(--ink); font-weight: 620; }
+  .empty p { margin: 0; font-size: 13px; }
+
+  /* ---------- Modal ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15,27,45,.5);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 56px 20px; z-index: 50; overflow-y: auto;
+  }
+  .overlay[hidden] { display: none; }
+  .modal {
+    background: var(--surface); border-radius: 12px; width: 100%; max-width: 560px;
+    box-shadow: 0 24px 60px rgba(15,23,42,.3);
+    animation: modal-in .16s ease-out;
+  }
+  @keyframes modal-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .modal__head {
+    padding: 17px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .modal__head h2 { font-size: 15.5px; font-weight: 640; margin: 0; }
+  .modal__head p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+  .modal__body { padding: 20px 22px; }
+  .modal__foot {
+    padding: 15px 22px; border-top: 1px solid var(--border); background: #fbfcfe;
+    display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 12px 12px;
+  }
+  .field { margin-bottom: 15px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 620; color: #334155;
+    margin-bottom: 5px; letter-spacing: .01em;
+  }
+  .field label .opt { color: #94a3b8; font-weight: 500; }
+  .field input, .field textarea, .field select {
+    font: inherit; font-size: 13.5px; width: 100%;
+    padding: 9px 11px; border-radius: 8px;
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink);
+  }
+  .field textarea { resize: vertical; min-height: 84px; }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: 2px solid #bfdbfe; border-color: var(--accent);
+  }
+  .field .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .field .err { font-size: 11.5px; color: #b91c1c; margin-top: 4px; }
+  .field.invalid input, .field.invalid textarea { border-color: #fca5a5; background: #fffafa; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ---------- Toasts ---------- */
+  .toasts {
+    position: fixed; right: 22px; bottom: 22px; z-index: 80;
+    display: flex; flex-direction: column; gap: 10px; max-width: 380px;
+  }
+  .toast {
+    background: #16263c; color: #f1f5f9; border-radius: 9px;
+    padding: 11px 14px; font-size: 13px; box-shadow: 0 10px 26px rgba(15,23,42,.28);
+    display: flex; gap: 10px; align-items: flex-start;
+    animation: toast-in .18s ease-out;
+  }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .toast--error { background: #7f1d1d; }
+  .toast--success { background: #14532d; }
+  .toast__body { flex: 1; }
+  .toast__title { font-weight: 620; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  @media (max-width: 720px) {
+    .page { padding: 18px 16px 48px; }
+    .app-header__inner { padding: 0 16px; }
+    .page-head__actions { margin-left: 0; width: 100%; }
+    .search { margin-left: 0; width: 100%; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header__inner">
+    <div class="brand">
+      <img src="/static/aurus-logo-small.png" alt="Aurus Financial Group" style="height:38px; border-radius:6px; cursor:pointer; display:block;" id="escalateBtn">
+      <div class="brand__text">
+        <div class="brand__title">Aurus IT Helpdesk</div>
+        <div class="brand__sub">Service Operations Console</div>
+      </div>
+    </div>
+    <div class="app-header__right">
+      <span class="env-chip">Live</span>
+      <span class="clock" id="clock"></span>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>Ticket Operations</h1>
+      <p>Monitor open incidents, track SLA compliance, and action the queue.</p>
+    </div>
+    <div class="page-head__actions">
+      <button class="btn btn--ghost" id="refreshBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>
+        </svg>
+        Refresh
+      </button>
+      <button class="btn btn--primary" id="newTicketBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        New Ticket
+      </button>
+    </div>
+  </div>
+
+  <div id="bannerSlot" aria-live="polite"></div>
+
+  <section class="tiles" aria-label="Queue summary">
+    <div class="tile tile--info">
+      <div class="tile__label">Total tickets</div>
+      <div class="tile__value" id="statTotal">—</div>
+      <div class="tile__foot" id="statTotalFoot">&nbsp;</div>
+    </div>
+    <div class="tile tile--ok">
+      <div class="tile__label">Open</div>
+      <div class="tile__value" id="statOpen">—</div>
+      <div class="tile__foot" id="statOpenFoot">&nbsp;</div>
+    </div>
+    <div class="tile tile--warn">
+      <div class="tile__label">Past SLA</div>
+      <div class="tile__value" id="statOverdue">—</div>
+      <div class="tile__foot" id="statOverdueFoot">&nbsp;</div>
+    </div>
+    <div class="tile tile--critical">
+      <div class="tile__label">Escalated</div>
+      <div class="tile__value" id="statEscalated">—</div>
+      <div class="tile__foot" id="statEscalatedFoot">&nbsp;</div>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="chips" id="statusChips" role="group" aria-label="Filter by status"></div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>
+      </svg>
+      <label class="sr-only" for="searchInput">Search tickets</label>
+      <input id="searchInput" type="search" placeholder="Search by title, ID, or assignee…" autocomplete="off" />
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card__head">
+      <h2>Ticket Queue</h2>
+      <span class="right" id="queueMeta">Loading…</span>
+    </div>
+    <div id="tableSlot">
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+        </svg>
+        <h3>Loading tickets…</h3>
+        <p>Fetching the current queue from the helpdesk API.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal__head">
+      <div>
+        <h2 id="modalTitle">Create ticket</h2>
+        <p>Log a new incident or service request.</p>
+      </div>
+    </div>
+    <form id="createForm" novalidate>
+      <div class="modal__body">
+        <div class="field" id="fTitle">
+          <label for="inTitle">Title</label>
+          <input id="inTitle" name="title" type="text" maxlength="160" placeholder="e.g. VPN access not working for new hire" />
+          <div class="err" id="errTitle" hidden>Please enter a title.</div>
+        </div>
+        <div class="field" id="fDesc">
+          <label for="inDesc">Description</label>
+          <textarea id="inDesc" name="description" placeholder="What is happening, who is affected, and what has been tried?"></textarea>
+          <div class="err" id="errDesc" hidden>Please enter a description.</div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="inPriority">Priority</label>
+            <select id="inPriority" name="priority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+            <div class="hint" id="slaHint"></div>
+          </div>
+          <div class="field">
+            <label for="inAssignee">Assignee <span class="opt">(optional)</span></label>
+            <input id="inAssignee" name="assignee" type="text" placeholder="name@aurus.com" />
+            <div class="hint">Assigned tickets are excluded from escalation.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn btn--ghost" type="button" id="cancelBtn">Cancel</button>
+        <button class="btn btn--primary" type="submit" id="submitBtn">Create ticket</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="detail-backdrop" id="detailBackdrop"></div>
+<aside class="detail-panel" id="detailPanel" aria-hidden="true" aria-label="Ticket details">
+  <div class="detail-panel__head">
+    <div>
+      <div class="detail-panel__eyebrow">Ticket</div>
+      <div class="detail-panel__id" id="detailId">—</div>
+    </div>
+    <button type="button" class="detail-close" id="detailClose" aria-label="Close details">×</button>
+  </div>
+  <div class="detail-panel__body" id="detailBody"></div>
+</aside>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API = "";
+  var STATUSES = ["open", "in_progress", "resolved", "closed", "escalated"];
+  var STATUS_LABELS = {
+    open: "Open",
+    in_progress: "In Progress",
+    resolved: "Resolved",
+    closed: "Closed",
+    escalated: "Escalated"
+  };
+  var SLA_HOURS = { low: 72, medium: 24, high: 8, critical: 4 };
+  var PRIORITY_LABELS = { low: "Low", medium: "Medium", high: "High", critical: "Critical" };
+  var FLASH_MS = 9000;
+  var ASSIGNEE_OPTIONS = [
+    null,
+    "priya.sharma@aurus.com",
+    "marcus.chen@aurus.com",
+    "jennifer.walsh@aurus.com",
+    "eng-support@aurus.com",
+    "helpdesk@aurus.com"
+  ];
+
+  var state = {
+    tickets: [],
+    filter: "all",
+    query: "",
+    loading: false,
+    escalating: false,
+    busyIds: {},
+    flashedIds: {},
+    flashToken: {},
+    selectedId: null,
+    activity: {}
+  };
+
+  var el = {
+    tableSlot: document.getElementById("tableSlot"),
+    queueMeta: document.getElementById("queueMeta"),
+    statusChips: document.getElementById("statusChips"),
+    searchInput: document.getElementById("searchInput"),
+    bannerSlot: document.getElementById("bannerSlot"),
+    toasts: document.getElementById("toasts"),
+    overlay: document.getElementById("overlay"),
+    createForm: document.getElementById("createForm"),
+    submitBtn: document.getElementById("submitBtn"),
+    escalateBtn: document.getElementById("escalateBtn"),
+    refreshBtn: document.getElementById("refreshBtn"),
+    newTicketBtn: document.getElementById("newTicketBtn"),
+    cancelBtn: document.getElementById("cancelBtn"),
+    clock: document.getElementById("clock"),
+    inPriority: document.getElementById("inPriority"),
+    slaHint: document.getElementById("slaHint"),
+    statTotal: document.getElementById("statTotal"),
+    statOpen: document.getElementById("statOpen"),
+    statOverdue: document.getElementById("statOverdue"),
+    statEscalated: document.getElementById("statEscalated"),
+    statTotalFoot: document.getElementById("statTotalFoot"),
+    statOpenFoot: document.getElementById("statOpenFoot"),
+    statOverdueFoot: document.getElementById("statOverdueFoot"),
+    statEscalatedFoot: document.getElementById("statEscalatedFoot"),
+    detailPanel: document.getElementById("detailPanel"),
+    detailBackdrop: document.getElementById("detailBackdrop"),
+    detailBody: document.getElementById("detailBody"),
+    detailId: document.getElementById("detailId"),
+    detailClose: document.getElementById("detailClose")
+  };
+
+  /* ------------------------------ helpers ------------------------------ */
+
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  // The store writes naive UTC timestamps (datetime.utcnow) and timezone-aware
+  // ones after escalation. Treat anything without an offset as UTC.
+  function parseDate(value) {
+    if (!value) return null;
+    var raw = String(value);
+    if (!/(Z|[+-]\d{2}:?\d{2})$/.test(raw)) raw += "Z";
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmtWhen(value) {
+    var d = parseDate(value);
+    if (!d) return "—";
+    return d.toLocaleString(undefined, {
+      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+  }
+
+  function fmtDuration(ms) {
+    var mins = Math.max(0, Math.round(ms / 60000));
+    var days = Math.floor(mins / 1440);
+    var hours = Math.floor((mins % 1440) / 60);
+    var m = mins % 60;
+    if (days > 0) return days + "d " + hours + "h";
+    if (hours > 0) return hours + "h " + m + "m";
+    return m + "m";
+  }
+
+  function isClosedStatus(s) { return s === "resolved" || s === "closed"; }
+
+  function isOverdue(t) {
+    var d = parseDate(t.sla_deadline);
+    if (!d) return false;
+    if (isClosedStatus(t.status)) return false;
+    return d.getTime() < Date.now();
+  }
+
+  // Mirrors the backend rule: critical + open + unassigned + past deadline.
+  function isEscalationCandidate(t) {
+    if (t.priority !== "critical") return false;
+    if (t.status !== "open") return false;
+    if (t.assignee && String(t.assignee).trim()) return false;
+    var d = parseDate(t.sla_deadline);
+    if (!d) return false;
+    return d.getTime() < Date.now();
+  }
+
+  function statusLabel(s) { return STATUS_LABELS[s] || s; }
+  function priorityLabel(p) { return PRIORITY_LABELS[p] || p; }
+
+  function ticketById(id) {
+    return state.tickets.filter(function (t) { return t.id === id; })[0] || null;
+  }
+
+  function statusOptionsHtml(current) {
+    return STATUSES.map(function (s) {
+      return '<option value="' + esc(s) + '"' + (s === current ? " selected" : "") + ">" +
+        esc(statusLabel(s)) + "</option>";
+    }).join("");
+  }
+
+  // Fixed option list; keeps an unrecognised current assignee selectable so the
+  // control always reflects the ticket's real value.
+  function assigneeOptionsHtml(current) {
+    var cur = current && String(current).trim() ? String(current).trim() : "";
+    var list = ASSIGNEE_OPTIONS.slice();
+    if (cur && list.indexOf(cur) === -1) list.unshift(cur);
+    return list.map(function (a) {
+      var value = a || "";
+      return '<option value="' + esc(value) + '"' + (value === cur ? " selected" : "") + ">" +
+        esc(a || "Unassigned") + "</option>";
+    }).join("");
+  }
+
+  function applyTicket(updated) {
+    if (!updated || !updated.id) return;
+    state.tickets = state.tickets.map(function (t) {
+      return t.id === updated.id ? updated : t;
+    });
+  }
+
+  // Session-scoped log. Every ticket starts with its creation entry.
+  function ensureActivity(t) {
+    if (!t) return;
+    if (!state.activity[t.id]) {
+      state.activity[t.id] = [{ at: t.created_at, text: "Ticket created · Open" }];
+    }
+  }
+
+  function logActivity(id, text) {
+    ensureActivity(ticketById(id));
+    if (!state.activity[id]) state.activity[id] = [];
+    state.activity[id].push({ at: new Date().toISOString(), text: text });
+  }
+
+  function setRowBusy(id, busy) {
+    var nodes = document.querySelectorAll('[data-id="' + CSS.escape(id) + '"]');
+    Array.prototype.forEach.call(nodes, function (n) {
+      if (n.tagName === "SELECT" || n.tagName === "BUTTON") n.disabled = !!busy;
+    });
+  }
+
+  function setBusy(button, busy, busyLabel) {
+    if (!button) return;
+    if (busy) {
+      if (!button.dataset.label) button.dataset.label = button.innerHTML;
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner"></span>' + esc(busyLabel || "Working…");
+    } else {
+      button.disabled = false;
+      if (button.dataset.label) button.innerHTML = button.dataset.label;
+    }
+  }
+
+  /* ------------------------------ toasts ------------------------------ */
+
+  function toast(message, kind, title) {
+    var node = document.createElement("div");
+    node.className = "toast" + (kind ? " toast--" + kind : "");
+    node.setAttribute("role", "status");
+    node.innerHTML =
+      '<div class="toast__body">' +
+        (title ? '<div class="toast__title">' + esc(title) + "</div>" : "") +
+        "<div>" + esc(message) + "</div>" +
+      "</div>";
+    el.toasts.appendChild(node);
+    setTimeout(function () { node.remove(); }, 6000);
+  }
+
+  function errorMessage(payload, fallback) {
+    if (!payload) return fallback;
+    var d = payload.detail;
+    if (typeof d === "string") return d;
+    if (d && typeof d === "object") return d.title || d.detail || fallback;
+    if (Array.isArray(d) && d.length && d[0] && d[0].msg) {
+      return "Validation error: " + d[0].msg;
+    }
+    return fallback;
+  }
+
+  /* ------------------------------ api ------------------------------ */
+
+  function request(path, options) {
+    var opts = options || {};
+    return fetch(API + path, {
+      method: opts.method || "GET",
+      headers: opts.body ? { "Content-Type": "application/json" } : undefined,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store"
+    }).then(function (res) {
+      if (res.status === 204) return null;
+      return res.text().then(function (text) {
+        var data = null;
+        if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
+        if (!res.ok) {
+          var err = new Error(errorMessage(data, "Request failed (" + res.status + ")"));
+          err.status = res.status;
+          err.payload = data;
+          throw err;
+        }
+        return data;
+      });
+    });
+  }
+
+  /* ------------------------------ rendering ------------------------------ */
+
+  function priorityBadge(p) {
+    return '<span class="badge badge--' + esc(p) + '">' + esc(priorityLabel(p)) + "</span>";
+  }
+
+  function statusPill(s) {
+    return '<span class="status status--' + esc(s) + '">' +
+      '<span class="status__dot"></span>' + esc(statusLabel(s)) + "</span>";
+  }
+
+  function slaCell(t) {
+    var d = parseDate(t.sla_deadline);
+    if (!d) return '<td><span class="sla sla--none">No SLA</span></td>';
+    var delta = d.getTime() - Date.now();
+    if (isClosedStatus(t.status)) {
+      return '<td><span class="sla sla--none">' + esc(fmtWhen(t.sla_deadline)) + "</span></td>";
+    }
+    if (delta < 0) {
+      return '<td><span class="sla sla--overdue">Overdue by ' + esc(fmtDuration(-delta)) + "</span>" +
+        '<span class="sla__meta">due ' + esc(fmtWhen(t.sla_deadline)) + " · " +
+        (isEscalationCandidate(t) ? "escalation eligible" : "target " + esc(priorityLabel(t.priority))) +
+        "</span></td>";
+    }
+    return '<td><span class="sla sla--ok">' + esc(fmtDuration(delta)) + " remaining</span>" +
+      '<span class="sla__meta">due ' + esc(fmtWhen(t.sla_deadline)) + "</span></td>";
+  }
+
+  function assigneeCell(t) {
+    var busy = state.busyIds[t.id] ? " disabled" : "";
+    return '<td><label class="sr-only" for="asg-' + esc(t.id) + '">Assignee for ' +
+      esc(t.title) + "</label>" +
+      '<select class="assignee-select" id="asg-' + esc(t.id) + '" data-id="' + esc(t.id) + '"' + busy + ">" +
+        assigneeOptionsHtml(t.assignee) + "</select></td>";
+  }
+
+  var TRASH_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M3 6h18"/><path d="M8 6V4h8v2"/>' +
+    '<path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
+  function actionsCell(t) {
+    var busy = state.busyIds[t.id] ? " disabled" : "";
+    return '<td><div class="actions-cell">' +
+      '<label class="sr-only" for="sel-' + esc(t.id) + '">Status for ' + esc(t.title) + "</label>" +
+      '<select class="status-select" id="sel-' + esc(t.id) + '" data-id="' + esc(t.id) + '"' + busy + ">" +
+        statusOptionsHtml(t.status) + "</select>" +
+      '<button type="button" class="delete-btn" data-id="' + esc(t.id) + '" data-delete="' + esc(t.id) + '"' +
+        ' title="Delete ticket" aria-label="Delete ticket ' + esc(t.title) + '"' + busy + ">" +
+        TRASH_ICON + "</button>" +
+      "</div></td>";
+  }
+
+  function rowHtml(t) {
+    var flashed = state.flashedIds[t.id];
+    return '<tr data-id="' + esc(t.id) + '" data-priority="' + esc(t.priority) + '"' +
+      (flashed ? ' class="is-escalated-now flash"' : "") + ">" +
+      '<td><span class="t-id">' + esc(t.id) + "</span></td>" +
+      "<td><div class=\"t-title\">" + esc(t.title) +
+        (flashed ? '<span class="escalated-tag">Just escalated</span>' : "") +
+      '</div><div class="t-desc" title="' + esc(t.description) + '">' + esc(t.description) + "</div></td>" +
+      "<td>" + priorityBadge(t.priority) + "</td>" +
+      "<td>" + statusPill(t.status) + "</td>" +
+      assigneeCell(t) +
+      slaCell(t) +
+      '<td><span class="t-when">' + esc(fmtWhen(t.updated_at)) + "<small>created " +
+        esc(fmtWhen(t.created_at)) + "</small></span></td>" +
+      actionsCell(t) +
+      "</tr>";
+  }
+
+  function visibleTickets() {
+    var q = state.query.trim().toLowerCase();
+    return state.tickets.filter(function (t) {
+      if (state.filter !== "all" && t.status !== state.filter) return false;
+      if (!q) return true;
+      return (t.title + " " + t.description + " " + t.id + " " + (t.assignee || ""))
+        .toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function renderChips() {
+    var counts = { all: state.tickets.length };
+    STATUSES.forEach(function (s) { counts[s] = 0; });
+    state.tickets.forEach(function (t) {
+      if (counts[t.status] === undefined) counts[t.status] = 0;
+      counts[t.status] += 1;
+    });
+    var items = [{ key: "all", label: "All" }].concat(
+      STATUSES.map(function (s) { return { key: s, label: statusLabel(s) }; })
+    );
+    el.statusChips.innerHTML = items.map(function (item) {
+      return '<button type="button" class="chip" data-filter="' + esc(item.key) + '" aria-pressed="' +
+        (state.filter === item.key) + '">' + esc(item.label) +
+        '<span class="chip__count">' + (counts[item.key] || 0) + "</span></button>";
+    }).join("");
+  }
+
+  function renderTable() {
+    var rows = visibleTickets();
+    el.queueMeta.textContent = state.tickets.length === 0
+      ? "No tickets"
+      : "Showing " + rows.length + " of " + state.tickets.length +
+        (state.loading ? " · refreshing…" : "");
+
+    if (rows.length === 0) {
+      var isFiltered = state.tickets.length > 0;
+      el.tableSlot.innerHTML =
+        '<div class="empty">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M4 6h16v12H4z"/><path d="M4 10h16"/></svg>' +
+        "<h3>" + (isFiltered ? "No tickets match this view" : "The queue is empty") + "</h3>" +
+        "<p>" + (isFiltered
+          ? "Adjust the status filter or clear the search to see more tickets."
+          : "Create a ticket to get started.") + "</p></div>";
+      return;
+    }
+
+    el.tableSlot.innerHTML =
+      '<div class="table-scroll"><table>' +
+      "<thead><tr>" +
+        "<th>ID</th><th>Ticket</th><th>Priority</th><th>Status</th>" +
+        "<th>Assignee</th><th>SLA</th><th>Updated</th><th>Actions</th>" +
+      "</tr></thead><tbody>" +
+      rows.map(rowHtml).join("") +
+      "</tbody></table></div>";
+  }
+
+  /* ------------------------------ detail panel ------------------------------ */
+
+  function detailSla(t) {
+    var d = parseDate(t.sla_deadline);
+    if (!d) return '<span class="sla sla--none">No SLA</span>';
+    var html = '<div>' + esc(fmtWhen(t.sla_deadline)) + "</div>";
+    if (isOverdue(t)) {
+      html += '<div class="detail-overdue">Overdue by ' +
+        esc(fmtDuration(Date.now() - d.getTime())) + "</div>";
+    } else if (!isClosedStatus(t.status)) {
+      html += '<div class="detail-sub">' + esc(fmtDuration(d.getTime() - Date.now())) +
+        " remaining</div>";
+    }
+    return html;
+  }
+
+  function activityHtml(id) {
+    var log = state.activity[id] || [];
+    if (!log.length) return '<div class="detail-sub">No activity yet.</div>';
+    return '<ul class="activity-log">' + log.slice().reverse().map(function (e) {
+      return '<li class="activity-item"><span class="activity-dot"></span>' +
+        '<div class="activity-body">' +
+          '<div class="activity-text">' + esc(e.text) + "</div>" +
+          '<div class="activity-meta"><span>' + esc(fmtWhen(e.at)) + "</span>" +
+            '<span class="activity-sys">System</span></div>' +
+        "</div></li>";
+    }).join("") + "</ul>";
+  }
+
+  function detailBodyHtml(t) {
+    var a = t.assignee && String(t.assignee).trim();
+    var busy = state.busyIds[t.id] ? " disabled" : "";
+    return '<div class="detail-grid">' +
+        '<div class="detail-field detail-field--wide">' +
+          '<div class="detail-label">Title</div>' +
+          '<div class="detail-value detail-title">' + esc(t.title) + "</div>" +
+        "</div>" +
+        '<div class="detail-field detail-field--wide">' +
+          '<div class="detail-label">Description</div>' +
+          '<div class="detail-value detail-desc">' + esc(t.description) + "</div>" +
+        "</div>" +
+        '<div class="detail-field"><div class="detail-label">Priority</div>' +
+          '<div class="detail-value">' + priorityBadge(t.priority) + "</div></div>" +
+        '<div class="detail-field"><div class="detail-label">Status</div>' +
+          '<div class="detail-value">' + statusPill(t.status) + "</div></div>" +
+        '<div class="detail-field"><div class="detail-label">SLA deadline</div>' +
+          '<div class="detail-value">' + detailSla(t) + "</div></div>" +
+        '<div class="detail-field"><div class="detail-label">Assignee</div>' +
+          '<div class="detail-value">' +
+            (a ? '<span class="assignee">' + esc(a) + "</span>"
+               : '<span class="unassigned">Unassigned</span>') +
+          "</div></div>" +
+        '<div class="detail-field"><div class="detail-label">Created</div>' +
+          '<div class="detail-value">' + esc(fmtWhen(t.created_at)) + "</div></div>" +
+        '<div class="detail-field"><div class="detail-label">Updated</div>' +
+          '<div class="detail-value">' + esc(fmtWhen(t.updated_at)) + "</div></div>" +
+      "</div>" +
+
+      '<div class="detail-section">' +
+        '<div class="detail-section__title">Assignee</div>' +
+        '<label class="sr-only" for="detailAssignee">Assignee</label>' +
+        '<select class="detail-select" id="detailAssignee" data-id="' + esc(t.id) + '"' + busy + ">" +
+          assigneeOptionsHtml(t.assignee) + "</select>" +
+      "</div>" +
+
+      '<div class="detail-section">' +
+        '<div class="detail-section__title">Status</div>' +
+        '<label class="sr-only" for="detailStatus">Status</label>' +
+        '<select class="detail-select" id="detailStatus" data-id="' + esc(t.id) + '"' + busy + ">" +
+          statusOptionsHtml(t.status) + "</select>" +
+      "</div>" +
+
+      '<div class="detail-section">' +
+        '<div class="detail-section__title">Activity</div>' +
+        activityHtml(t.id) +
+      "</div>";
+  }
+
+  function renderPanel() {
+    if (!state.selectedId) return;
+    var t = ticketById(state.selectedId);
+    if (!t) { closePanel(); return; }
+    ensureActivity(t);
+    el.detailId.textContent = t.id;
+    el.detailBody.innerHTML = detailBodyHtml(t);
+  }
+
+  function openPanel(id) {
+    var t = ticketById(id);
+    if (!t) return;
+    ensureActivity(t);
+    state.selectedId = id;
+    renderPanel();
+    el.detailPanel.classList.add("is-open");
+    el.detailBackdrop.classList.add("is-open");
+    el.detailPanel.setAttribute("aria-hidden", "false");
+  }
+
+  function closePanel() {
+    state.selectedId = null;
+    el.detailPanel.classList.remove("is-open");
+    el.detailBackdrop.classList.remove("is-open");
+    el.detailPanel.setAttribute("aria-hidden", "true");
+  }
+
+  function renderStats() {
+    var total = state.tickets.length;
+    var open = state.tickets.filter(function (t) { return t.status === "open"; }).length;
+    var inProgress = state.tickets.filter(function (t) { return t.status === "in_progress"; }).length;
+    var escalated = state.tickets.filter(function (t) { return t.status === "escalated"; }).length;
+    var overdue = state.tickets.filter(isOverdue).length;
+    var candidates = state.tickets.filter(isEscalationCandidate).length;
+    var critical = state.tickets.filter(function (t) { return t.priority === "critical"; }).length;
+
+    el.statTotal.textContent = total;
+    el.statTotalFoot.textContent = critical + " critical · " + inProgress + " in progress";
+    el.statOpen.textContent = open;
+    el.statOpenFoot.textContent = open === 1 ? "1 ticket awaiting triage" : open + " tickets awaiting triage";
+    el.statOverdue.textContent = overdue;
+    el.statOverdueFoot.textContent = candidates > 0
+      ? candidates + " eligible for escalation"
+      : "None eligible for escalation";
+    el.statEscalated.textContent = escalated;
+    el.statEscalatedFoot.textContent = escalated === 1 ? "1 ticket breached SLA" : escalated + " tickets breached SLA";
+  }
+
+  function render() {
+    renderChips();
+    renderStats();
+    renderTable();
+    if (state.selectedId && !ticketById(state.selectedId)) closePanel();
+    renderPanel();
+  }
+
+  /* ------------------------------ banner ------------------------------ */
+
+  function showBanner(kind, title, text, items) {
+    var icon = kind === "success"
+      ? '<svg class="banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+      : kind === "error"
+        ? '<svg class="banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>'
+        : '<svg class="banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.01"/></svg>';
+
+    var list = (items && items.length)
+      ? "<ul>" + items.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>"
+      : "";
+
+    el.bannerSlot.innerHTML =
+      '<div class="banner banner--' + kind + '">' + icon +
+        '<div class="banner__body">' +
+          '<div class="banner__title">' + esc(title) + "</div>" +
+          (text ? '<div class="banner__text">' + esc(text) + "</div>" : "") +
+          list +
+        "</div>" +
+        '<button class="banner__close" type="button" aria-label="Dismiss">×</button>' +
+      "</div>";
+  }
+
+  function clearBanner() { el.bannerSlot.innerHTML = ""; }
+
+  /* ------------------------------ data flow ------------------------------ */
+
+  function load() {
+    state.loading = true;
+    return request("/tickets").then(function (data) {
+      state.tickets = Array.isArray(data) ? data : [];
+      state.loading = false;
+      render();
+    }).catch(function (err) {
+      state.loading = false;
+      render();
+      if (state.tickets.length === 0) {
+        el.tableSlot.innerHTML =
+          '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>' +
+          "<h3>Could not load tickets</h3><p>" + esc(err.message) + "</p></div>";
+      }
+      toast(err.message, "error", "Load failed");
+    });
+  }
+
+  function updateStatus(id, status) {
+    if (state.busyIds[id]) return;
+    var t = ticketById(id);
+    if (!t || t.status === status) return;
+    state.busyIds[id] = true;
+    setRowBusy(id, true);
+
+    return request("/tickets/" + encodeURIComponent(id), {
+      method: "PATCH",
+      body: { status: status }
+    }).then(function (updated) {
+      delete state.busyIds[id];
+      applyTicket(updated);
+      logActivity(id, "Status changed to " + statusLabel(updated.status));
+      render();
+      toast("Ticket " + id + " moved to " + statusLabel(updated.status) + ".", "success", "Status updated");
+    }).catch(function (err) {
+      delete state.busyIds[id];
+      render();
+      toast(err.message, "error", "Update failed");
+    });
+  }
+
+  function changeAssignee(id, value) {
+    if (state.busyIds[id]) return;
+    var t = ticketById(id);
+    if (!t) return;
+    var next = value && String(value).trim() ? String(value).trim() : null;
+    state.busyIds[id] = true;
+    setRowBusy(id, true);
+
+    return request("/tickets/" + encodeURIComponent(id), {
+      method: "PATCH",
+      body: { assignee: next }
+    }).then(function (updated) {
+      delete state.busyIds[id];
+      applyTicket(updated);
+      render();
+      var who = updated.assignee && String(updated.assignee).trim();
+      toast("Ticket " + id + " assigned to " + (who || "no one") + ".", "success",
+        who ? "Assignee updated" : "Ticket unassigned");
+    }).catch(function (err) {
+      delete state.busyIds[id];
+      render();
+      toast(err.message, "error", "Update failed");
+    });
+  }
+
+  function deleteTicket(id, btn) {
+    if (state.busyIds[id]) return;
+    state.busyIds[id] = true;
+    if (btn) btn.disabled = true;
+
+    return request("/tickets/" + encodeURIComponent(id), { method: "DELETE" })
+      .then(function () {
+        delete state.busyIds[id];
+        toast("Ticket " + id + " deleted.", "success", "Ticket deleted");
+        return load();
+      })
+      .catch(function (err) {
+        delete state.busyIds[id];
+        if (btn) btn.disabled = false;
+        toast(err.message, "error", "Delete failed");
+      });
+  }
+
+  function runEscalation() {
+    if (state.escalating) return;
+    state.escalating = true;
+    setBusy(el.escalateBtn, true, "Syncing…");
+
+    request("/tickets/escalate", { method: "POST" })
+      .then(function (changed) {
+        var list = Array.isArray(changed) ? changed : [];
+        var ids = list.map(function (t) { return t.id; });
+
+        state.tickets = state.tickets.map(function (t) {
+          var match = list.filter(function (c) { return c.id === t.id; })[0];
+          return match || t;
+        });
+
+        if (ids.length) {
+          ids.forEach(function (id) {
+            logActivity(id, "Escalated automatically by system");
+            state.flashedIds[id] = true;
+            (function (ticketId) {
+              setTimeout(function () {
+                delete state.flashedIds[ticketId];
+                var row = document.querySelector('tr[data-id="' + CSS.escape(ticketId) + '"]');
+                if (row) {
+                  row.classList.remove("flash", "is-escalated-now");
+                  var tag = row.querySelector(".escalated-tag");
+                  if (tag) tag.remove();
+                }
+              }, FLASH_MS);
+            })(id);
+          });
+          showBanner(
+            "success",
+            "Automated SLA enforcement — " +
+              (list.length === 1 ? "1 ticket escalated" : list.length + " tickets escalated"),
+            "The system detected tickets that breached SLA without an assigned owner and escalated them automatically.",
+            list.map(function (t) { return t.id + " — " + t.title; })
+          );
+          toast(list.length + " ticket" + (list.length === 1 ? "" : "s") + " escalated.", "success", "Escalation complete");
+        } else {
+          showBanner(
+            "info",
+            "Automated SLA check — all tickets within threshold",
+            "No tickets currently meet the escalation criteria. The queue is within SLA compliance."
+          );
+          toast("No tickets met the escalation criteria.", null, "Escalation complete");
+        }
+
+        render();
+      })
+      .catch(function (err) {
+        showBanner("error", "Escalation failed", err.message);
+        toast(err.message, "error", "Escalation failed");
+      })
+      .then(function () {
+        state.escalating = false;
+        setBusy(el.escalateBtn, false);
+      });
+  }
+
+  /* ------------------------------ modal ------------------------------ */
+
+  function slaHoursFor(priority) { return SLA_HOURS[priority] || 24; }
+
+  function updateSlaHint() {
+    var p = el.inPriority.value;
+    var h = slaHoursFor(p);
+    var hours = h >= 24 ? (h / 24) + " day" + (h === 24 ? "" : "s") : h + " hours";
+    el.slaHint.textContent = priorityLabel(p) + " priority · SLA target " + hours + " from creation.";
+  }
+
+  function openModal() {
+    el.createForm.reset();
+    el.inPriority.value = "medium";
+    updateSlaHint();
+    ["fTitle", "fDesc"].forEach(function (id) {
+      document.getElementById(id).classList.remove("invalid");
+    });
+    document.getElementById("errTitle").hidden = true;
+    document.getElementById("errDesc").hidden = true;
+    el.overlay.hidden = false;
+    setTimeout(function () { document.getElementById("inTitle").focus(); }, 20);
+  }
+
+  function closeModal() { el.overlay.hidden = true; }
+
+  function submitCreate(evt) {
+    evt.preventDefault();
+    var title = document.getElementById("inTitle").value.trim();
+    var description = document.getElementById("inDesc").value.trim();
+    var assignee = document.getElementById("inAssignee").value.trim();
+    var priority = el.inPriority.value;
+
+    var okTitle = title.length > 0;
+    var okDesc = description.length > 0;
+    document.getElementById("fTitle").classList.toggle("invalid", !okTitle);
+    document.getElementById("fDesc").classList.toggle("invalid", !okDesc);
+    document.getElementById("errTitle").hidden = okTitle;
+    document.getElementById("errDesc").hidden = okDesc;
+    if (!okTitle || !okDesc) return;
+
+    var body = { title: title, description: description, priority: priority };
+    if (assignee) body.assignee = assignee;
+
+    setBusy(el.submitBtn, true, "Creating…");
+    request("/tickets", { method: "POST", body: body })
+      .then(function () {
+        closeModal();
+        toast('Ticket "' + title + '" created with ' + priorityLabel(priority).toLowerCase() + " priority.", "success", "Ticket created");
+        return load();
+      })
+      .catch(function (err) {
+        toast(err.message, "error", "Could not create ticket");
+      })
+      .then(function () { setBusy(el.submitBtn, false); });
+  }
+
+  /* ------------------------------ events ------------------------------ */
+
+  el.statusChips.addEventListener("click", function (e) {
+    var btn = e.target.closest(".chip");
+    if (!btn) return;
+    state.filter = btn.dataset.filter;
+    render();
+  });
+
+  el.searchInput.addEventListener("input", function () {
+    state.query = el.searchInput.value;
+    renderTable();
+  });
+
+  el.tableSlot.addEventListener("change", function (e) {
+    var target = e.target;
+    if (target.classList.contains("status-select")) {
+      updateStatus(target.dataset.id, target.value);
+      return;
+    }
+    if (target.classList.contains("assignee-select")) {
+      changeAssignee(target.dataset.id, target.value);
+    }
+  });
+
+  el.tableSlot.addEventListener("click", function (e) {
+    var btn = e.target.closest(".delete-btn");
+    if (btn) {
+      deleteTicket(btn.dataset.delete, btn);
+      return;
+    }
+    // Row click opens the detail panel; controls and their labels are exempt.
+    if (e.target.closest("select, button, input, label, a, textarea")) return;
+    var row = e.target.closest("tr[data-id]");
+    if (row) openPanel(row.dataset.id);
+  });
+
+  el.detailBackdrop.addEventListener("click", closePanel);
+  el.detailClose.addEventListener("click", closePanel);
+
+  el.detailPanel.addEventListener("change", function (e) {
+    var target = e.target;
+    if (target.id === "detailAssignee") {
+      changeAssignee(target.dataset.id, target.value);
+      return;
+    }
+    if (target.id === "detailStatus") {
+      updateStatus(target.dataset.id, target.value);
+    }
+  });
+
+  el.refreshBtn.addEventListener("click", function () {
+    setBusy(el.refreshBtn, true, "Refreshing…");
+    load().then(function () { setBusy(el.refreshBtn, false); });
+  });
+
+  el.escalateBtn.addEventListener("click", runEscalation);
+  el.newTicketBtn.addEventListener("click", openModal);
+  el.cancelBtn.addEventListener("click", closeModal);
+  el.createForm.addEventListener("submit", submitCreate);
+  el.inPriority.addEventListener("change", updateSlaHint);
+
+  el.overlay.addEventListener("click", function (e) {
+    if (e.target === el.overlay) closeModal();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (!el.overlay.hidden) { closeModal(); return; }
+    if (state.selectedId) closePanel();
+  });
+
+  document.addEventListener("click", function (e) {
+    if (e.target.classList && e.target.classList.contains("banner__close")) clearBanner();
+  });
+
+  /* ------------------------------ clock ------------------------------ */
+
+  function tickClock() {
+    el.clock.textContent = new Date().toLocaleTimeString(undefined, {
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }) + " local";
+  }
+
+  /* ------------------------------ boot ------------------------------ */
+
+  updateSlaHint();
+  tickClock();
+  setInterval(tickClock, 1000);
+  setInterval(function () {
+    // Keep relative SLA labels honest without a full re-render.
+    if (!state.loading && !state.escalating) renderStats();
+  }, 30000);
+  load();
+})();
+</script>
+</body>
+</html>
