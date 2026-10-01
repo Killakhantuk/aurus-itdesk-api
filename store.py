@@ -34,6 +34,17 @@ _SEED_TICKETS = [
 ]
 
 
+def _as_aware_utc(dt: datetime) -> datetime:
+    """Treat naive datetimes as UTC so they compare cleanly with aware ones.
+
+    Needed because the store mixes naive ``datetime.utcnow()`` timestamps with
+    timezone-aware ones (e.g. the seeded overdue ticket).
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class TicketStore:
     def __init__(self):
         self._tickets: dict[str, Ticket] = {}
@@ -89,6 +100,36 @@ class TicketStore:
         })
         self._tickets[ticket_id] = updated
         return updated
+
+    def escalate_overdue(self) -> list[Ticket]:
+        """Escalate open, unassigned critical tickets past their SLA deadline.
+
+        Returns the tickets that were escalated, newest first.
+        """
+        now = datetime.now(timezone.utc)
+        escalated = []
+        for ticket_id, ticket in self._tickets.items():
+            if not self._is_escalation_candidate(ticket, now):
+                continue
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[ticket_id] = updated
+            escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
+
+    def _is_escalation_candidate(self, ticket: Ticket, now: datetime) -> bool:
+        """Eligible when critical, open, unassigned, and past its SLA deadline."""
+        if ticket.priority != "critical":
+            return False
+        if ticket.status != "open":
+            return False
+        if ticket.assignee and ticket.assignee.strip():
+            return False
+        if ticket.sla_deadline is None:
+            return False
+        return now > _as_aware_utc(ticket.sla_deadline)
 
     def delete(self, ticket_id: str) -> bool:
         if ticket_id not in self._tickets:

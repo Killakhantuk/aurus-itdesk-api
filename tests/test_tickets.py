@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 from main import app, store
 
@@ -54,3 +56,77 @@ def test_filter_by_status():
     resp = client.get("/tickets?status=open")
     assert resp.status_code == 200
     assert all(t["status"] == "open" for t in resp.json())
+
+
+def _set_sla_deadline(ticket_id, deadline):
+    """Move a ticket's SLA deadline, mirroring how the store seeds an overdue ticket."""
+    ticket = store._tickets[ticket_id]
+    store._tickets[ticket_id] = ticket.model_copy(update={"sla_deadline": deadline})
+
+
+def test_escalate_overdue_critical_unassigned_ticket():
+    ticket_id = client.post("/tickets", json={
+        "title": "Escalate me", "description": "desc", "priority": "critical"
+    }).json()["id"]
+    _set_sla_deadline(ticket_id, datetime.now(timezone.utc) - timedelta(hours=2))
+
+    resp = client.post("/tickets/escalate")
+
+    assert resp.status_code == 200
+    escalated = [t for t in resp.json() if t["id"] == ticket_id]
+    assert len(escalated) == 1
+    assert escalated[0]["status"] == "escalated"
+    assert client.get(f"/tickets/{ticket_id}").json()["status"] == "escalated"
+
+
+def test_escalate_skips_wrong_priority():
+    ticket_id = client.post("/tickets", json={
+        "title": "High but overdue", "description": "desc", "priority": "high"
+    }).json()["id"]
+    _set_sla_deadline(ticket_id, datetime.now(timezone.utc) - timedelta(hours=2))
+
+    resp = client.post("/tickets/escalate")
+
+    assert resp.status_code == 200
+    assert all(t["id"] != ticket_id for t in resp.json())
+    assert client.get(f"/tickets/{ticket_id}").json()["status"] == "open"
+
+
+def test_escalate_skips_assigned_ticket():
+    ticket_id = client.post("/tickets", json={
+        "title": "Owned critical", "description": "desc",
+        "priority": "critical", "assignee": "eng-support@aurus.com",
+    }).json()["id"]
+    _set_sla_deadline(ticket_id, datetime.now(timezone.utc) - timedelta(hours=2))
+
+    resp = client.post("/tickets/escalate")
+
+    assert resp.status_code == 200
+    assert all(t["id"] != ticket_id for t in resp.json())
+    assert client.get(f"/tickets/{ticket_id}").json()["status"] == "open"
+
+
+def test_escalate_skips_ticket_within_sla():
+    ticket_id = client.post("/tickets", json={
+        "title": "Fresh critical", "description": "desc", "priority": "critical"
+    }).json()["id"]
+
+    resp = client.post("/tickets/escalate")
+
+    assert resp.status_code == 200
+    assert all(t["id"] != ticket_id for t in resp.json())
+    assert client.get(f"/tickets/{ticket_id}").json()["status"] == "open"
+
+
+def test_escalate_skips_non_open_ticket():
+    ticket_id = client.post("/tickets", json={
+        "title": "Already triaged", "description": "desc", "priority": "critical"
+    }).json()["id"]
+    _set_sla_deadline(ticket_id, datetime.now(timezone.utc) - timedelta(hours=2))
+    client.patch(f"/tickets/{ticket_id}", json={"status": "in_progress"})
+
+    resp = client.post("/tickets/escalate")
+
+    assert resp.status_code == 200
+    assert all(t["id"] != ticket_id for t in resp.json())
+    assert client.get(f"/tickets/{ticket_id}").json()["status"] == "in_progress"
