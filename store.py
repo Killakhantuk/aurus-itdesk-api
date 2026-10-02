@@ -6,6 +6,15 @@ from models import Ticket, CreateTicketRequest, UpdateTicketRequest
 
 _SLA_HOURS = {"low": 72, "medium": 24, "high": 8, "critical": 4}
 
+
+def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+    # Tickets hold naive UTC timestamps until escalation writes aware ones;
+    # treat naive values as UTC so deadlines are always comparable.
+    if value is None:
+        return None
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
 _INITIAL_TICKETS = [
     (
         "VPN access not working for new hire",
@@ -76,6 +85,28 @@ class TicketStore:
         if status_filter:
             tickets = [t for t in tickets if t.status == status_filter]
         return sorted(tickets, key=lambda t: t.created_at, reverse=True)
+
+    def escalate_overdue_critical(self) -> list[Ticket]:
+        now = datetime.now(timezone.utc)
+        escalated = []
+        for ticket in list(self._tickets.values()):
+            if not self._is_escalation_eligible(ticket, now):
+                continue
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[updated.id] = updated
+            escalated.append(updated)
+        return sorted(escalated, key=lambda t: t.created_at, reverse=True)
+
+    def _is_escalation_eligible(self, ticket: Ticket, now: datetime) -> bool:
+        if ticket.priority != "critical" or ticket.status != "open":
+            return False
+        if ticket.assignee is not None and ticket.assignee.strip() != "":
+            return False
+        deadline = _as_utc(ticket.sla_deadline)
+        return deadline is not None and deadline < now
 
     def update(self, ticket_id: str, req: UpdateTicketRequest) -> Optional[Ticket]:
         ticket = self._tickets.get(ticket_id)
