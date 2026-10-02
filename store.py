@@ -90,6 +90,39 @@ class TicketStore:
         self._tickets[ticket_id] = updated
         return updated
 
+    def escalate_breached(self) -> list[Ticket]:
+        """Escalate critical, open, unassigned tickets whose SLA deadline has passed.
+
+        Only status ("escalated") and updated_at change on an escalated ticket.
+        Returns the tickets that were escalated, newest first.
+        """
+        now = datetime.now(timezone.utc)
+        escalated: list[Ticket] = []
+        for ticket in sorted(self._tickets.values(), key=lambda t: t.created_at, reverse=True):
+            if not self._is_escalation_eligible(ticket, now):
+                continue
+            updated = ticket.model_copy(update={
+                "status": "escalated",
+                "updated_at": now,
+            })
+            self._tickets[ticket.id] = updated
+            escalated.append(updated)
+        return escalated
+
+    def _is_escalation_eligible(self, ticket: Ticket, now: datetime) -> bool:
+        if ticket.priority != "critical" or ticket.status != "open":
+            return False
+        if ticket.assignee and ticket.assignee.strip():
+            return False
+        if ticket.sla_deadline is None:
+            return False
+        deadline = ticket.sla_deadline
+        if deadline.tzinfo is None:
+            # Deadlines written by create() are naive UTC; align them with the
+            # timezone-aware clock before comparing.
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        return deadline < now
+
     def delete(self, ticket_id: str) -> bool:
         if ticket_id not in self._tickets:
             return False
